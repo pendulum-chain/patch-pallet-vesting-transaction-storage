@@ -78,6 +78,8 @@ mod tests;
 mod payment;
 mod types;
 
+pub mod migrations;
+
 pub use pallet::*;
 pub use payment::*;
 pub use types::{FeeDetails, InclusionFee, RuntimeDispatchInfo};

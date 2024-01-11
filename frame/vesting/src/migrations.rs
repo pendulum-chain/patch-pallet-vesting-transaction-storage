@@ -18,7 +18,7 @@
 //! Storage migrations for the vesting pallet.
 
 use super::*;
-
+use frame_support::traits::OnRuntimeUpgrade;
 // Migration from single schedule to multiple schedules.
 pub mod v1 {
 	use super::*;
@@ -35,33 +35,18 @@ pub mod v1 {
 		Ok(())
 	}
 
-	/// Migrate from single schedule to multi schedule storage.
-	/// WARNING: This migration will delete schedules if `MaxVestingSchedules < 1`.
-	pub fn migrate<T: Config>() -> Weight {
-		let mut reads_writes = 0;
+	/// Manually setting the version to V1
+	pub struct ForceSetVersionToV1<T>(sp_std::marker::PhantomData<T>);
+	impl<T: Config> OnRuntimeUpgrade for ForceSetVersionToV1<T> {
+		fn on_runtime_upgrade() -> Weight {
 
-		Vesting::<T>::translate::<VestingInfo<BalanceOf<T>, T::BlockNumber>, _>(
-			|_key, vesting_info| {
-				reads_writes += 1;
-				let v: Option<
-					BoundedVec<
-						VestingInfo<BalanceOf<T>, T::BlockNumber>,
-						MaxVestingSchedulesGet<T>,
-					>,
-				> = vec![vesting_info].try_into().ok();
-
-				if v.is_none() {
-					log::warn!(
-						target: "runtime::vesting",
-						"migration: Failed to move a vesting schedule into a BoundedVec"
-					);
-				}
-
-				v
-			},
-		);
-
-		T::DbWeight::get().reads_writes(reads_writes, reads_writes)
+			if StorageVersion::<T>::get() == Releases::V0 {
+				StorageVersion::<T>::put(Releases::V1);
+			}
+			
+			T::DbWeight::get().reads_writes(1, 1)
+		}
+	
 	}
 
 	#[cfg(feature = "try-runtime")]
